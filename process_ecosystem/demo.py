@@ -46,11 +46,13 @@ class DemoProcess:
 class DemoCollector:
     """Collector-protocol simulator: tick() → (snapshots, system sample)."""
 
-    def __init__(self, seed: int = 1, interval: float = SIM_INTERVAL, clk_tck: int = 100, ncores: int = 8):
+    def __init__(self, seed: int = 1, interval: float = SIM_INTERVAL, clk_tck: int = 100,
+                 ncores: int = 8, duration: float | None = None):
         self.seed = seed
         self.interval = interval
         self.clk_tck = clk_tck
         self.ncores = ncores
+        self.duration = duration  # simulated-seconds horizon; None = run until quit
         self.rng = random.Random(seed)
         self.sim_time = 0.0
         self.tick_count = 0
@@ -204,6 +206,13 @@ class DemoCollector:
             proc.rss_growth = rate
 
     # --- tick -----------------------------------------------------------------
+
+    @property
+    def finished(self) -> bool:
+        """True once the simulated clock reached the duration horizon."""
+        if self.duration is None:
+            return False
+        return self.sim_time >= self.duration - 1e-9
 
     def tick(self) -> tuple[list[ProcessSnapshot], SystemSample]:
         vt = self.sim_time

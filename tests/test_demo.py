@@ -164,3 +164,57 @@ class TestEngineParity:
         _, s1 = d1.tick()
         _, s8 = d8.tick()
         assert s8.cpu_total_ticks == 4 * s1.cpu_total_ticks
+
+
+class TestDuration:
+    def test_no_duration_never_finished(self):
+        d = DemoCollector(seed=1)
+        for _ in range(100):
+            d.tick()
+        assert d.finished is False
+
+    def test_finished_at_horizon(self):
+        d = DemoCollector(seed=1, duration=1.0)  # 5 ticks at 0.2 s
+        for _ in range(4):
+            d.tick()
+            assert d.finished is False
+        d.tick()
+        assert d.finished is True
+
+    def test_finished_exact_boundary(self):
+        d = DemoCollector(seed=1, duration=0.4)
+        d.tick()
+        assert d.finished is False
+        d.tick()
+        assert d.finished is True
+
+    def test_zero_duration_finished_immediately(self):
+        d = DemoCollector(seed=1, duration=0.0)
+        assert d.finished is True
+
+    def test_finished_respects_interval(self):
+        # smaller interval (faster clock) reaches the horizon sooner
+        d = DemoCollector(seed=1, duration=1.0, interval=0.1)
+        for _ in range(9):
+            d.tick()
+            assert d.finished is False
+        d.tick()
+        assert d.finished is True
+
+    def test_demo_horizon_in_tui_path_sets_quit(self):
+        from process_ecosystem.engine import EcosystemState
+        from process_ecosystem.history import History
+        from process_ecosystem.ui import App, Options
+
+        d = DemoCollector(seed=1, duration=0.4)
+        eng = EcosystemState(History(), clk_tck=100, ncores=8)
+        app = App(d, eng, Options(), interval_sec=0.2, initial_wall_time=BTIME + 3660.0)
+        app._tick()
+        assert app.quit is False
+        app._tick()
+        assert app.quit is True
+
+    def test_live_collector_never_finished(self):
+        from process_ecosystem.collector import ProcCollector, ProcReader
+
+        assert ProcCollector(ProcReader("/proc")).finished is False

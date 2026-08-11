@@ -143,6 +143,11 @@ class ProcCollector:
     def __init__(self, reader: ProcReader):
         self.reader = reader
 
+    @property
+    def finished(self) -> bool:
+        """Live collection never finishes on its own (matches demo horizon)."""
+        return False
+
     def read_process(self, pid: int) -> ProcessSnapshot | None:
         """One process; None when the pid vanished or is unreadable."""
         stat_text = self.reader.read(pid, "stat")

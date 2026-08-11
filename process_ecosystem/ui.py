@@ -180,6 +180,8 @@ class App:
         self.messages = [m for m in self.messages if self.tick_index - m[1] < int(2.0 / self.interval)]
         if self.selected_pid is not None and self.engine.process(self.selected_pid) is None:
             self.selected_pid = None
+        if self.collector.finished:
+            self.quit = True
 
     def _events_from_diff(self, diff) -> list[str]:
         plus, cross, ring = ("✚", "✖", "◌") if self.chars.v == "│" else ("+", "x", "o")
@@ -382,6 +384,10 @@ class App:
             f"procs {eng.alive_count()}  ↑{births} ↓{deaths}  load {eng.load1:4.2f}  "
             f"{self.rate:0.2f}s"
         )
+        duration = getattr(self.collector, "duration", None)
+        if duration is not None:
+            t = getattr(self.collector, "sim_time", 0.0)
+            left += f"  t={min(t, duration):.0f}/{duration:.0f}s"
         hint = "q quit  ? help"
         hint_col = max(0, w - len(hint))
         space = hint_col - 1

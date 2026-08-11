@@ -115,6 +115,53 @@ class TestMain:
         rc = main(["demo", "--headless", "3", "--duration", "10", "--speed", "2"])
         assert rc == 0
 
+    def test_demo_headless_duration_stops_early(self, capsys):
+        # 1.0 sim-second at rate 5 (0.2 s/tick) = 5 ticks, not the requested 100
+        rc = main(["demo", "--headless", "100", "--duration", "1"])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 5" in out
+
+    def test_demo_headless_duration_not_reached_uses_ticks(self, capsys):
+        rc = main(["demo", "--headless", "3", "--duration", "100"])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 3" in out
+
+    def test_demo_headless_duration_speed_compression(self, capsys):
+        # speed 4 → 0.05 s/tick → 2.0 sim-seconds = 40 ticks
+        rc = main(["demo", "--headless", "500", "--duration", "2", "--speed", "4"])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 40" in out
+
+    def test_demo_headless_duration_exact_boundary(self, capsys):
+        # 1.0 sim-second at 0.2 s/tick lands exactly on tick 5
+        rc = main(["demo", "--headless", "100", "--duration", "1.0"])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 5" in out
+
+    def test_demo_headless_zero_duration(self, capsys):
+        rc = main(["demo", "--headless", "50", "--duration", "0"])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 0" in out
+
+    def test_monitor_ignores_duration_semantics(self, capsys, tmp_path):
+        # monitor mode: --duration is a demo flag, headless tick count rules
+        (tmp_path / "1").mkdir()
+        (tmp_path / "1" / "stat").write_text(
+            "1 (systemd) S 0 1 1 0 -1 100 0 0 0 10 10 0 0 20 0 1 0 500 100 10 1 0 0 0 0 0 0 0 0 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"
+        )
+        (tmp_path / "stat").write_text("cpu  100 0 0 900 0 0 0 0 0 0\n")
+        (tmp_path / "meminfo").write_text("MemTotal:       1024 kB\nMemAvailable:   512 kB\n")
+        (tmp_path / "loadavg").write_text("0.1 0.2 0.3 1/1 1\n")
+        rc = main(["monitor", "--headless", "4", "--proc-root", str(tmp_path)])
+        out = capsys.readouterr().out
+        assert rc == 0
+        assert "ticks 4" in out
+
 
 class TestModuleEntry:
     def test_version_module(self):

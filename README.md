@@ -66,7 +66,8 @@ Every state is driven by measured data; nothing is faked in live mode.
 - **Deterministic demo mode** — a simulated ecosystem (compiler bursts,
   cron-job churn, browser tab churn, memory growth, a crash-and-respawn
   episode, a zombie) that exercises the exact same pipeline as live mode.
-  Great for screenshots, demos, and tests.
+  Runs until you quit, or auto-exits after `--duration N` simulated
+  seconds (countdown in the footer). Great for screenshots, demos, and tests.
 - **4 views**: ecosystem (radar-like tree), classic tree, timeline
   (CPU/RAM/churn graphs + event log), top-by-CPU
 - **Lifecycle engine**: NEW → ACTIVE/IDLE → DYING → DEAD with
@@ -119,7 +120,7 @@ process-ecosystem [command] [options]
 | `--export PATH` | write history JSON on exit |
 | `--export-csv PATH` | write history CSV on exit |
 | `--seed N` | demo mode: simulation seed |
-| `--duration SEC` | demo mode: simulated seconds (default 60) |
+| `--duration SEC` | demo mode: auto-exit after SEC simulated seconds (default: run until quit); a `t=NN/NNs` countdown shows in the footer |
 | `--speed X` | demo mode: simulation speed multiplier |
 
 ### Keys

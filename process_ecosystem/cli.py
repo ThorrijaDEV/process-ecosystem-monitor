@@ -51,16 +51,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--export-csv", metavar="PATH", help="write history CSV to PATH on exit")
     p.add_argument("--proc-root", default="/proc", metavar="DIR", help=argparse.SUPPRESS)
     p.add_argument("--seed", type=int, default=1, help="demo: simulation seed (default 1)")
-    p.add_argument("--duration", type=float, default=60.0, metavar="SEC", help="demo: simulated seconds (default 60)")
+    p.add_argument("--duration", type=float, default=None, metavar="SEC",
+                   help="demo: exit after SEC simulated seconds (default: run until quit)")
     p.add_argument("--speed", type=float, default=1.0, help="demo: simulation speed multiplier (default 1)")
     p.add_argument("--headless", type=int, default=0, metavar="TICKS", help=argparse.SUPPRESS)
-    return p
-    d.add_argument("--duration", type=float, default=60.0, help="simulated seconds (default 60)")
-    d.add_argument("--speed", type=float, default=1.0, help="simulation speed multiplier (default 1)")
-    d.add_argument("--headless", type=int, default=0, metavar="TICKS", help=argparse.SUPPRESS)
-
-    m = sub.add_parser("monitor", parents=[common], help="live monitor (default)")
-    m.add_argument("--headless", type=int, default=0, metavar="TICKS", help=argparse.SUPPRESS)
     return p
 
 
@@ -87,9 +81,11 @@ def _export(engine: EcosystemState, args) -> None:
 
 def _headless(engine: EcosystemState, collector, opts: Options, interval: float, ticks: int, wall_time0: float) -> int:
     app = App(collector, engine, opts, interval_sec=interval, initial_wall_time=wall_time0)
-    for _ in range(ticks):
+    ran = 0
+    while ran < ticks and not app.quit and not collector.finished:
         app._tick()
-    print(f"ticks {ticks}  alive {engine.alive_count()}  "
+        ran += 1
+    print(f"ticks {ran}  alive {engine.alive_count()}  "
           f"cpu {engine.system_cpu:5.1f}%  ram {engine.system_ram:5.1f}%  "
           f"history {len(engine.history)}  load {engine.load1:4.2f}")
     return 0
@@ -110,7 +106,8 @@ def main(argv: list[str] | None = None) -> int:
         eff_interval = interval / speed
         seed = args.seed
         opts.mode_label = f"demo seed {seed}"
-        collector = DemoCollector(seed=seed, interval=eff_interval, clk_tck=clk_tck, ncores=ncores)
+        collector = DemoCollector(seed=seed, interval=eff_interval, clk_tck=clk_tck,
+                                  ncores=ncores, duration=args.duration)
         wall0 = BTIME + 3660.0
     else:
         collector = ProcCollector(ProcReader(args.proc_root, clk_tck, page_size, ncores))
